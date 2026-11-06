@@ -2,14 +2,17 @@
 package protocol
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"strings"
+	"sync"
 	"unicode/utf8"
 
 	"cursor/gen/agentv1"
 	"cursor/gen/aiserverv1"
 	"cursor/internal/backend/agent/core"
+	"cursor/internal/logger"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -49,7 +52,11 @@ func DecodeAgentClientMessage(hexData string) (*agentv1.AgentClientMessage, stri
 	if err := proto.Unmarshal(payload, clientMessage); err != nil {
 		return nil, "", fmt.Errorf("decode agent client message failed: %w", err)
 	}
-	return clientMessage, detectClientMessageKind(clientMessage), nil
+	clientKind := detectClientMessageKind(clientMessage)
+	if clientKind == "" {
+		logUnknownClientMessage(payload, clientMessage)
+	}
+	return clientMessage, clientKind, nil
 }
 
 // MapClientMessageToCommandKind 将上行协议消息映射为运行时命令类型。
@@ -221,4 +228,81 @@ func truncateText(text string, maxRunes int) string {
 		return text
 	}
 	return string(runes[:maxRunes]) + "..."
+}
+
+// unknownKindLogOnce 记录已打印过的 unknown 消息签名，避免重复日志刷屏。
+var unknownKindLogOnce sync.Map
+
+// logUnknownClientMessage 在上行 AgentClientMessage 解不出已知 oneof 种类时，
+// 打印 unknown fields 的字段号与 wire type，用于反查新版客户端新增的 oneof 成员。
+func logUnknownClientMessage(payload []byte, message *agentv1.AgentClientMessage) {
+	oneofType := fmt.Sprintf("%T", message.GetMessage())
+	unknown := message.ProtoReflect().GetUnknown()
+	var fieldDescs []string
+	if len(unknown) > 0 {
+		fieldDescs = describeUnknownFields(unknown)
+	} else {
+		fieldDescs = []string{"none"}
+	}
+	signature := oneofType + "|" + strings.Join(fieldDescs, ",")
+	if _, loaded := unknownKindLogOnce.LoadOrStore(signature, struct{}{}); loaded {
+		return
+	}
+	logger.Infof(
+		"unknown agent client message kind: oneof=%s unknown_fields=[%s] payload_len=%d payload_head=%s",
+		oneofType,
+		strings.Join(fieldDescs, ","),
+		len(payload),
+		truncateText(hex.EncodeToString(payload), 160),
+	)
+}
+
+// describeUnknownFields 解析 proto unknown fields 原始字节，返回 "field=<n> wire=<t> len=<l>" 描述列表。
+func describeUnknownFields(unknown []byte) []string {
+	var descs []string
+	rest := unknown
+	for len(rest) > 0 {
+		tag, n := binary.Uvarint(rest)
+		if n <= 0 {
+			descs = append(descs, "malformed-tag")
+			break
+		}
+		rest = rest[n:]
+		fieldNum := tag >> 3
+		wireType := tag & 0x7
+		length := 0
+		switch wireType {
+		case 0: // varint
+			_, n = binary.Uvarint(rest)
+			if n > 0 {
+				length = n
+				rest = rest[n:]
+			}
+		case 1: // 64-bit
+			length = 8
+			if len(rest) >= 8 {
+				rest = rest[8:]
+			}
+		case 2: // length-delimited
+			l, n := binary.Uvarint(rest)
+			if n > 0 {
+				length = int(l)
+				if int(n)+int(l) <= len(rest) {
+					rest = rest[n+int(l):]
+				} else {
+					rest = nil
+				}
+			}
+		case 5: // 32-bit
+			length = 4
+			if len(rest) >= 4 {
+				rest = rest[4:]
+			}
+		default:
+			descs = append(descs, fmt.Sprintf("field=%d wire=%d", fieldNum, wireType))
+			continue
+		}
+		descs = append(descs, fmt.Sprintf("field=%d wire=%d len=%d", fieldNum, wireType, length))
+	}
+	return descs
 }

@@ -369,6 +369,11 @@ func (service *Service) BidiAppend(ctx context.Context, req *connect.Request[ais
 		return connect.NewResponse(&aiserverv1.BidiAppendResponse{}), nil
 	}
 	defer appendTicket.Release()
+	// 新版客户端在 binary transport 模式下把载荷放进 data_binary（field 4），
+	// data（field 1）留空；这里做兼容回退，统一转成 hex 供后续解码。
+	if strings.TrimSpace(dataHex) == "" && len(req.Msg.GetDataBinary()) > 0 {
+		dataHex = hex.EncodeToString(req.Msg.GetDataBinary())
+	}
 	message, clientKind, err := protocol.DecodeAgentClientMessage(dataHex)
 	if err != nil {
 		service.debug.LogBidiRaw(ctx, requestID, "", appendSeqno, dataHex, "decode_error", map[string]any{
