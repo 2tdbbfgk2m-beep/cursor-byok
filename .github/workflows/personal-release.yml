@@ -1,0 +1,125 @@
+name: Personal macOS Release
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: personal-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.repository == '2tdbbfgk2m-beep/cursor-byok'
+    runs-on: macos-latest
+    timeout-minutes: 45
+    env:
+      CGO_CFLAGS: -mmacosx-version-min=10.15
+      CGO_LDFLAGS: -mmacosx-version-min=10.15
+      MACOSX_DEPLOYMENT_TARGET: '10.15'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install build tools
+        run: |
+          brew install protobuf
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11
+          go install connectrpc.com/connect/cmd/protoc-gen-connect-go@v1.19.1
+          go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha.74
+          npm install --global yarn@1.22.22
+
+      - name: Generate protocol and desktop bindings
+        run: |
+          protoc -I proto --go_out=. --go_opt=module=cursor --connect-go_out=. --connect-go_opt=module=cursor proto/agent_v1.proto proto/aiserver_v1.proto
+          mkdir -p frontend/dist
+          printf '<html></html>\n' > frontend/dist/index.html
+          wails3 generate bindings -f '-tags production' -clean=true
+
+      - name: Build frontend and run regressions
+        run: |
+          yarn --cwd frontend install --frozen-lockfile --non-interactive
+          yarn --cwd frontend build
+          node --test frontend/src/state/*.test.js
+          python3 -m unittest discover -s scripts/tests -v
+          go test ./internal/... ./scripts/release
+
+      - name: Determine personal version
+        run: |
+          BASE_VERSION="$(go run ./scripts/release version -config build/config.yml)"
+          if [[ ! "$BASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo 'Expected an upstream stable base version' >&2
+            exit 1
+          fi
+          echo "VERSION=${BASE_VERSION}-personal.${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+
+      - name: Build and sign Apple Silicon app
+        run: |
+          mkdir -p release-dist 'bin/Cursor助手.app/Contents/MacOS' 'bin/Cursor助手.app/Contents/Resources'
+          GOOS=darwin GOARCH=arm64 CGO_ENABLED=1 go build -tags production -trimpath -buildvcs=false \
+            -ldflags "-w -s -X cursor/internal/buildinfo.Version=${VERSION}" \
+            -o 'bin/Cursor助手.app/Contents/MacOS/Cursor助手' .
+          cp build/darwin/icons.icns 'bin/Cursor助手.app/Contents/Resources/'
+          cp build/darwin/Info.plist 'bin/Cursor助手.app/Contents/Info.plist'
+          python3 - <<'PY'
+          import os, plistlib, re
+          from pathlib import Path
+          version = os.environ['VERSION']
+          p = Path('bin/Cursor助手.app/Contents/Info.plist')
+          info = plistlib.loads(p.read_bytes())
+          info['CFBundleShortVersionString'] = version
+          info['CFBundleVersion'] = os.environ['GITHUB_RUN_NUMBER']
+          info['LSUIElement'] = False
+          p.write_bytes(plistlib.dumps(info))
+          p = Path('build/config.yml')
+          text, count = re.subn(r'^(\s*version:\s*).*$', lambda m: m[1] + '"' + version + '"', p.read_text(), count=1, flags=re.M)
+          assert count == 1
+          p.write_text(text)
+          PY
+          test "$(lipo -archs 'bin/Cursor助手.app/Contents/MacOS/Cursor助手')" = arm64
+          codesign --force --deep --sign - 'bin/Cursor助手.app'
+          codesign --verify --deep --strict 'bin/Cursor助手.app'
+          tar -C bin -czf "release-dist/cursor-byok-${VERSION}-macos-arm64.tar.gz" 'Cursor助手.app'
+
+      - name: Generate personal update manifest
+        env:
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          {
+            printf '# Cursor助手个人维护版 %s\n\n' "$VERSION"
+            printf '%s\n\n' '保留提供商名称、模型自动前缀和个人更新源。macOS Apple Silicon，临时签名。'
+            printf 'Source: %s\n\n' "$GITHUB_SHA"
+            printf '## 上游发布说明\n\n'
+            cat release-notes.md
+          } > release-dist/notes.md
+          go run ./scripts/release manifest -config build/config.yml -assets-dir release-dist \
+            -out release-dist/update.json -repo "$REPOSITORY" -base-name cursor-byok \
+            -notes release-dist/notes.md -platform macos-arm64
+
+      - name: Publish complete release as latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          TAG="v${VERSION}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo 'Release already exists; refusing to replace published assets.' >&2
+            exit 1
+          fi
+          gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --draft \
+            --notes-file release-dist/notes.md \
+            "release-dist/cursor-byok-${VERSION}-macos-arm64.tar.gz" release-dist/update.json
+          gh release edit "$TAG" --draft=false --prerelease=false --latest

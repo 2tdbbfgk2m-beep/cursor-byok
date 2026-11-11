@@ -3,9 +3,9 @@ package buildinfo
 import "strings"
 
 const (
-	ReleaseRepo    = "Sxuan-Coder/cursor-byok"
-	UpdateBaseURL  = "https://github.com/Sxuan-Coder/cursor-byok/releases/latest/download/"
-	ReleasePageURL = "https://github.com/Sxuan-Coder/cursor-byok/releases"
+	ReleaseRepo    = "2tdbbfgk2m-beep/cursor-byok"
+	UpdateBaseURL  = "https://github.com/2tdbbfgk2m-beep/cursor-byok/releases/latest/download/"
+	ReleasePageURL = "https://github.com/2tdbbfgk2m-beep/cursor-byok/releases"
 )
 
 // Version is injected at build time from build/config.yml.

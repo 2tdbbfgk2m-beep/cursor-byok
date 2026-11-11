@@ -34,13 +34,31 @@ func compareVersions(a, b string) int {
 	if right.prerelease == "" {
 		return -1
 	}
-	if left.prerelease > right.prerelease {
-		return 1
+	leftParts := strings.Split(left.prerelease, ".")
+	rightParts := strings.Split(right.prerelease, ".")
+	for index := 0; index < len(leftParts) && index < len(rightParts); index++ {
+		l, r := leftParts[index], rightParts[index]
+		if l == r {
+			continue
+		}
+		leftNumber, leftErr := strconv.Atoi(l)
+		rightNumber, rightErr := strconv.Atoi(r)
+		switch {
+		case leftErr == nil && rightErr == nil:
+			if compared := compareInts(leftNumber, rightNumber); compared != 0 {
+				return compared
+			}
+		case leftErr == nil:
+			return -1
+		case rightErr == nil:
+			return 1
+		case l > r:
+			return 1
+		default:
+			return -1
+		}
 	}
-	if left.prerelease < right.prerelease {
-		return -1
-	}
-	return 0
+	return compareInts(len(leftParts), len(rightParts))
 }
 
 func parseVersion(raw string) semanticVersion {
@@ -48,6 +66,8 @@ func parseVersion(raw string) semanticVersion {
 	if clean == "" {
 		return semanticVersion{}
 	}
+
+	clean, _, _ = strings.Cut(clean, "+")
 
 	var prerelease string
 	if idx := strings.Index(clean, "-"); idx >= 0 {

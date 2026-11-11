@@ -1,0 +1,59 @@
+name: Sync Upstream
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: upstream-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.repository == '2tdbbfgk2m-beep/cursor-byok'
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Merge upstream candidate without pushing
+        id: merge
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git remote add upstream https://github.com/Sxuan-Coder/cursor-byok.git
+          bash scripts/sync-upstream.sh
+      - uses: actions/setup-go@v5
+        if: steps.merge.outputs.changed == 'true'
+        with:
+          go-version: '1.25.x'
+          cache: true
+      - uses: actions/setup-node@v4
+        if: steps.merge.outputs.changed == 'true'
+        with:
+          node-version: '22'
+      - name: Verify merged candidate
+        if: steps.merge.outputs.changed == 'true'
+        run: |
+          brew install protobuf
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11
+          go install connectrpc.com/connect/cmd/protoc-gen-connect-go@v1.19.1
+          protoc -I proto --go_out=. --go_opt=module=cursor --connect-go_out=. --connect-go_opt=module=cursor proto/agent_v1.proto proto/aiserver_v1.proto
+          go test ./internal/modelchannel ./internal/runtime ./internal/backend/server/config ./internal/backend/server/upstream ./internal/updater ./scripts/release
+          node --test frontend/src/state/*.test.js
+          python3 -m unittest discover -s scripts/tests -v
+      - name: Push verified merge and explicitly start personal release
+        if: steps.merge.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          git push origin HEAD:main
+          gh workflow run personal-release.yml --ref main

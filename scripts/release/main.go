@@ -112,6 +112,7 @@ func runManifest(args []string) {
 	outputPath := flags.String("out", "", "manifest output file")
 	repo := flags.String("repo", "", "GitHub repo in owner/repo form")
 	baseName := flags.String("base-name", "cursor-byok", "release asset basename")
+	platform := flags.String("platform", "", "single target platform; empty publishes all platforms")
 	notesPath := flags.String("notes", "", "release notes file")
 	_ = flags.Parse(args)
 
@@ -147,6 +148,9 @@ func runManifest(args []string) {
 	}
 
 	for _, spec := range releaseAssets {
+		if *platform != "" && spec.platform != *platform {
+			continue
+		}
 		filename := fmt.Sprintf("%s-%s-%s%s", *baseName, version, spec.platform, spec.suffix)
 		fullpath := filepath.Join(*assetsDir, filename)
 		asset, err := buildManifestAsset(fullpath, *repo, version, filename)
@@ -156,6 +160,9 @@ func runManifest(args []string) {
 		manifest.Platforms[spec.platform] = asset
 	}
 
+	if len(manifest.Platforms) == 0 {
+		exitf("unsupported release platform: %s", *platform)
+	}
 	if err := os.MkdirAll(filepath.Dir(*outputPath), 0o755); err != nil {
 		exitErr(err)
 	}
