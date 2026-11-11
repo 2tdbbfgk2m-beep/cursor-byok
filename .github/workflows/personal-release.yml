@@ -27,9 +27,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
+        id: go
         with:
           go-version: '1.25.x'
-          cache: true
+          cache: false
+      - uses: actions/cache/restore@v4
+        id: go-cache
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/Library/Caches/go-build
+          key: personal-go-${{ runner.os }}-${{ runner.arch }}-${{ steps.go.outputs.go-version }}-${{ hashFiles('go.sum') }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -74,21 +82,8 @@ jobs:
             -o 'bin/Cursor助手.app/Contents/MacOS/Cursor助手' .
           cp build/darwin/icons.icns 'bin/Cursor助手.app/Contents/Resources/'
           cp build/darwin/Info.plist 'bin/Cursor助手.app/Contents/Info.plist'
-          python3 - <<'PY'
-          import os, plistlib, re
-          from pathlib import Path
-          version = os.environ['VERSION']
-          p = Path('bin/Cursor助手.app/Contents/Info.plist')
-          info = plistlib.loads(p.read_bytes())
-          info['CFBundleShortVersionString'] = version
-          info['CFBundleVersion'] = os.environ['GITHUB_RUN_NUMBER']
-          info['LSUIElement'] = False
-          p.write_bytes(plistlib.dumps(info))
-          p = Path('build/config.yml')
-          text, count = re.subn(r'^(\s*version:\s*).*$', lambda m: m[1] + '"' + version + '"', p.read_text(), count=1, flags=re.M)
-          assert count == 1
-          p.write_text(text)
-          PY
+          python3 scripts/prepare-personal-bundle.py
+          test "$(go run ./scripts/release version -config build/config.yml)" = "$VERSION"
           test "$(lipo -archs 'bin/Cursor助手.app/Contents/MacOS/Cursor助手')" = arm64
           codesign --force --deep --sign - 'bin/Cursor助手.app'
           codesign --verify --deep --strict 'bin/Cursor助手.app'
@@ -123,3 +118,13 @@ jobs:
             --notes-file release-dist/notes.md \
             "release-dist/cursor-byok-${VERSION}-macos-arm64.tar.gz" release-dist/update.json
           gh release edit "$TAG" --draft=false --prerelease=false --latest
+
+      - name: Preserve Go cache even after a failed build
+        if: always() && steps.go-cache.outputs.cache-primary-key != '' && steps.go-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/Library/Caches/go-build
+          key: ${{ steps.go-cache.outputs.cache-primary-key }}
