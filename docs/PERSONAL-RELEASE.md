@@ -12,7 +12,7 @@
 
 ## 自动发布
 
-推送 main 或手动运行 Personal macOS Release 后，CI 使用 macOS 15 runner 构建 Apple Silicon 应用、运行回归测试、临时签名并验证、生成 SHA-256 更新清单。全部完成后才发布为 latest。
+推送 main 或手动运行 Personal macOS Release 后，CI 使用 macOS 15 Intel runner 交叉构建 Apple Silicon 应用（产物通过 lipo 验证为 arm64）、运行回归测试、临时签名并验证、生成 SHA-256 更新清单。全部完成后才发布为 latest。
 
 版本格式：`上游版本-personal.流水线编号`，例如 `1.0.1-personal.10`。编号按数值比较，10 大于 9。`build/config.yml` 保持上游基础版本，个人后缀由 CI 注入，不把构建产物提交回 main。
 
