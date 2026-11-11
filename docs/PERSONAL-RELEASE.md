@@ -53,3 +53,11 @@ git push origin main
 ## 恢复
 
 更新前先备份 `~/.cursor-local-assistant-v2/config.yaml`。要回退个人版本，从本仓库 Releases 下载上一个已发布的 arm64 包，退出助手后替换 `/Applications/Cursor助手.app`。保留配置目录；重启后核对 provider 名称和模型选择。无需清除账号或密钥。
+
+## 已验证的部署
+
+2026-11-12，[云端构建流水线](https://github.com/2tdbbfgk2m-beep/cursor-byok/actions/runs/43082856566)成功发布 [v1.0.1-personal.6](https://github.com/2tdbbfgk2m-beep/cursor-byok/releases/tag/v1.0.1-personal.6)，源码为 `781cb41e01415e451e18ee8ca58182235170c893`。公开更新清单、压缩包 SHA-256、文件大小、arm64 架构和签名均已校验。
+
+本机通过助手内的更新功能从 personal.1 安装到此云端版本；安装后的可执行文件与云端压缩包一致，签名验证通过，重启后服务正常。VC/Fable 两组、七个模型的配置和记住的模型选择与更新前完全一致。
+
+[首次上游同步验证](https://github.com/2tdbbfgk2m-beep/cursor-byok/actions/runs/43077769304)成功：上游没有新提交时直接结束，没有生成重复版本。
