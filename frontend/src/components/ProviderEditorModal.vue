@@ -21,6 +21,7 @@ const typeTabs = [
 
 const draft = reactive({
   type: "openai",
+  providerName: isCreate.value ? "" : String(props.provider?.providerName || ""),
   baseURL: isCreate.value ? "" : String(props.provider?.baseURL || ""),
   apiKey: isCreate.value ? "" : String(props.provider?.apiKey || ""),
 });
@@ -75,6 +76,7 @@ async function handleSubmit() {
     }
     emit("created", {
       type: draft.type,
+      providerName: draft.providerName.trim(),
       baseURL: draft.baseURL.trim(),
       apiKey: draft.apiKey.trim(),
     });
@@ -92,6 +94,7 @@ async function handleSubmit() {
       props.provider?.baseURL,
       props.provider?.apiKey,
       {
+        providerName: draft.providerName.trim(),
         baseURL: draft.baseURL.trim(),
         apiKey: draft.apiKey.trim(),
       },
@@ -113,7 +116,7 @@ async function handleSubmit() {
     <p class="text-sm leading-relaxed text-[#a3a3a3]">
       {{ isCreate
         ? "提供商按「接口地址 + 访问密钥」识别。填写后会打开模型拉取列表，至少添加一个模型才会保存。"
-        : "更新后会批量替换该提供商下全部模型的接口地址与访问密钥。" }}
+        : "名称会自动作为全部模型的显示前缀；修改地址与密钥也会同步到整组。" }}
     </p>
 
     <div v-if="isCreate" class="center-row gap-2">
@@ -131,6 +134,12 @@ async function handleSubmit() {
         <span>{{ tab.label }}</span>
       </button>
     </div>
+
+    <label class="flex flex-col gap-1">
+      <span class="text-sm text-[#d4d4d4]">提供商名称</span>
+      <Input v-model="draft.providerName" placeholder="例如：VC、Fable；留空使用域名" />
+      <span class="text-xs text-[#8f8f8f]">模型自动显示为「提供商名称 / 模型名称」</span>
+    </label>
 
     <label class="flex flex-col gap-1">
       <span class="center-row justify-start gap-1.5 text-sm text-[#d4d4d4]">
@@ -166,7 +175,7 @@ async function handleSubmit() {
     <div class="flex items-center justify-end gap-2">
       <Button variant="default" :disabled="submitting" @click="emit('close')">取消</Button>
       <Button variant="primary" :disabled="submitting" @click="handleSubmit">
-        {{ submitting ? "保存中..." : (isCreate ? "下一步：选择模型" : "保存凭证") }}
+        {{ submitting ? "保存中..." : (isCreate ? "下一步：选择模型" : "保存") }}
       </Button>
     </div>
   </div>

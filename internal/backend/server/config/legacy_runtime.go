@@ -15,6 +15,7 @@ func (store *Store) LegacyRuntimeSnapshot(ctx context.Context) (legacyruntime.Ru
 	adapters := make([]legacyruntime.ModelAdapterConfig, 0, len(cfg.ModelAdapters))
 	for _, item := range cfg.ModelAdapters {
 		adapters = append(adapters, legacyruntime.ModelAdapterConfig{
+			ProviderName:                item.ProviderName,
 			ID:                          item.ID,
 			Sort:                        item.Sort,
 			DisplayName:                 item.DisplayName,

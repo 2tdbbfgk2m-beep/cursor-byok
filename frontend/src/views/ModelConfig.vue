@@ -74,9 +74,9 @@ const batchButtonText = computed(() => {
   return `停止测试 ${batchCompleted.value}/${batchTotal.value}`;
 });
 const editorTitle = computed(() => (editorIndex.value >= 0 ? "编辑模型配置" : "新增模型配置"));
-const pickerTitle = computed(() => `拉取模型 · ${formatHost(pickerProvider.value?.baseURL)}`);
+const pickerTitle = computed(() => `拉取模型 · ${pickerProvider.value?.providerName || formatHost(pickerProvider.value?.baseURL)}`);
 const providerEditorTitle = computed(() => (
-  providerEditorMode.value === "edit" ? "编辑提供商凭证" : "新增提供商"
+  providerEditorMode.value === "edit" ? "编辑提供商" : "新增提供商"
 ));
 const emptyStateText = computed(() => (
   activeType.value === "all"
@@ -155,8 +155,8 @@ function handleEditorSaved(adapter) {
   }
 }
 
-function openPicker({ baseURL, apiKey, type = "openai", providerAdapters = [] }) {
-  pickerProvider.value = { baseURL, apiKey, type };
+function openPicker({ baseURL, apiKey, providerName = "", type = "openai", providerAdapters = [] }) {
+  pickerProvider.value = { baseURL, apiKey, type, providerName };
   pickerAdapters.value = providerAdapters;
   pickerSession.value += 1;
   pickerOpen.value = true;
@@ -166,8 +166,8 @@ function handlePickerAdded(added) {
   message(`已新增 ${added} 个模型`);
 }
 
-function handlePickerManual({ type, baseURL, apiKey }) {
-  openEditor(-1, { type, baseURL, apiKey });
+function handlePickerManual({ type, baseURL, apiKey, providerName }) {
+  openEditor(-1, { type, baseURL, apiKey, providerName });
 }
 
 function openProviderEditor(mode, provider = null) {
@@ -184,12 +184,12 @@ function closeProviderEditor() {
   providerEditorOpen.value = false;
 }
 
-function handleProviderCreated({ type, baseURL, apiKey }) {
-  openPicker({ baseURL, apiKey, type, providerAdapters: [] });
+function handleProviderCreated({ type, baseURL, apiKey, providerName }) {
+  openPicker({ baseURL, apiKey, type, providerName, providerAdapters: [] });
 }
 
 function handleProviderSaved(updated) {
-  message(`已更新 ${updated} 个模型的凭证`);
+  message(`已更新提供商及其 ${updated} 个模型`);
 }
 
 function handleGroupFetchModels(group) {
@@ -197,6 +197,7 @@ function handleGroupFetchModels(group) {
     ? activeType.value
     : group.types[0];
   openPicker({
+    providerName: group.providerName,
     baseURL: group.baseURL,
     apiKey: group.apiKey,
     type: preferredType || "openai",
@@ -210,6 +211,7 @@ function handleGroupAddModel(group) {
     : group.types[0];
   openEditor(-1, {
     type: preferredType || "openai",
+    providerName: group.providerName,
     baseURL: group.baseURL,
     apiKey: group.apiKey,
   });
@@ -468,7 +470,7 @@ onBeforeUnmount(() => {
             :actions-disabled="groupActionsDisabled"
             @fetch-models="handleGroupFetchModels"
             @add-model="handleGroupAddModel"
-            @edit-provider="openProviderEditor('edit', { baseURL: $event.baseURL, apiKey: $event.apiKey })"
+            @edit-provider="openProviderEditor('edit', $event)"
             @delete-provider="handleDeleteProvider"
             @test="handleTestModelAdapter"
             @edit="handleEditModelAdapter"
@@ -511,6 +513,7 @@ onBeforeUnmount(() => {
       :baseURL="pickerProvider.baseURL"
       :apiKey="pickerProvider.apiKey"
       :initialType="pickerProvider.type"
+      :providerName="pickerProvider.providerName"
       :providerAdapters="pickerAdapters"
       @added="handlePickerAdded"
       @manual="handlePickerManual"

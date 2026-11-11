@@ -20,7 +20,7 @@ func TestBuildCLIModelDetailsPreservesChannelMetadata(t *testing.T) {
 
 	got := buildCLIModelDetails(adapters)
 	want := []map[string]any{
-		{"modelId": "channel-a", "displayModelId": "channel-a", "displayName": "Model A", "displayNameShort": "Model A", "apiKeyCredentials": map[string]any{"apiKey": "provider-secret-a", "baseUrl": "https://provider-a.example/v1"}},
+		{"modelId": "channel-a", "displayModelId": "channel-a", "displayName": "provider-a.example / Model A", "displayNameShort": "provider-a.example / Model A", "apiKeyCredentials": map[string]any{"apiKey": "provider-secret-a", "baseUrl": "https://provider-a.example/v1"}},
 		{"modelId": "channel-b", "displayModelId": "channel-b", "displayName": "Model B", "displayNameShort": "Model B", "apiKeyCredentials": map[string]any{"apiKey": "", "baseUrl": ""}},
 	}
 	if !reflect.DeepEqual(got, want) {
@@ -80,7 +80,7 @@ func TestEncodeCLIModelsUsesAgentModelDetailsWireFormat(t *testing.T) {
 	if model.GetModelId() != "channel-a" || model.GetDisplayModelId() != "channel-a" {
 		t.Fatalf("decoded channel IDs: model=%q display=%q", model.GetModelId(), model.GetDisplayModelId())
 	}
-	if model.GetDisplayName() != "Model A" || model.GetDisplayNameShort() != "Model A" {
+	if model.GetDisplayName() != "provider.example / Model A" || model.GetDisplayNameShort() != "provider.example / Model A" {
 		t.Fatalf("decoded display names: name=%q short=%q", model.GetDisplayName(), model.GetDisplayNameShort())
 	}
 	if credentials := model.GetApiKeyCredentials(); credentials == nil || credentials.GetApiKey() != "provider-secret" || credentials.GetBaseUrl() != "https://provider.example/v1" {

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"cursor/internal/modelchannel"
 	legacyruntime "cursor/internal/runtime"
 )
 
@@ -679,7 +680,7 @@ func buildAvailableModelEntries(adapters []legacyruntime.ModelAdapterConfig) []m
 	output := make([]map[string]any, 0, len(adapters))
 	for _, adapter := range adapters {
 		channelID := strings.TrimSpace(adapter.ID)
-		displayName := strings.TrimSpace(adapter.DisplayName)
+		displayName := modelchannel.DisplayName(adapter.ProviderName, adapter.BaseURL, adapter.DisplayName, adapter.ModelID)
 		modelID := strings.TrimSpace(adapter.ModelID)
 		tooltipData := strings.TrimSpace(adapter.TooltipData)
 		if channelID == "" || modelID == "" {
@@ -730,8 +731,8 @@ func buildCLIModelDetails(adapters []legacyruntime.ModelAdapterConfig) []map[str
 		models = append(models, map[string]any{
 			"modelId":          channelID,
 			"displayModelId":   channelID,
-			"displayName":      strings.TrimSpace(adapter.DisplayName),
-			"displayNameShort": strings.TrimSpace(adapter.DisplayName),
+			"displayName":      modelchannel.DisplayName(adapter.ProviderName, adapter.BaseURL, adapter.DisplayName, adapter.ModelID),
+			"displayNameShort": modelchannel.DisplayName(adapter.ProviderName, adapter.BaseURL, adapter.DisplayName, adapter.ModelID),
 			"apiKeyCredentials": map[string]any{
 				"apiKey":  strings.TrimSpace(adapter.APIKey),
 				"baseUrl": strings.TrimSpace(adapter.BaseURL),

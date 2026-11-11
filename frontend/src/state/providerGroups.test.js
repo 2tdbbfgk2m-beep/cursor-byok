@@ -53,3 +53,17 @@ test("buildProviderGroups returns empty list for empty input", () => {
   assert.deepEqual(buildProviderGroups([]), []);
   assert.deepEqual(buildProviderGroups(null), []);
 });
+
+test("provider names label the whole group, including models added later", () => {
+  const groups = buildProviderGroups([
+    { baseURL: "https://a.example/v1", apiKey: "k", modelID: "new-model" },
+    { baseURL: "https://a.example/v1", apiKey: "k", providerName: " VC ", modelID: "old-model" },
+    { baseURL: "https://legacy.example/v1", apiKey: "k2", modelID: "same-model" },
+  ]);
+  assert.equal(groups[0].name, "VC");
+  assert.equal(groups[0].providerName, "VC");
+  assert.equal(groups[1].name, "legacy.example");
+  const renamed = buildProviderGroups(groups[0].adapters.map((a) => ({ ...a, providerName: "Renamed" })));
+  assert.equal(renamed[0].name, "Renamed");
+  assert.equal(renamed[0].key, groups[0].key);
+});

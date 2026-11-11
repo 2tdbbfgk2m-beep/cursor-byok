@@ -1,4 +1,5 @@
 <script setup>
+import { modelDisplayName } from "@/state/providerGroups";
 import ProviderMark from "@/components/brand/ProviderMark.vue";
 import { useActiveModelIds } from "@/composables/useActiveModelIds";
 import { appState } from "@/state/appState";
@@ -55,7 +56,7 @@ function openModelConfig(openEditor = false) {
         <button
           type="button"
           class="flex w-full items-center gap-2.5 rounded-[9px] px-2 py-[7px] text-left transition-colors hover:bg-[var(--bg-hover)]"
-          :title="adapter.displayName"
+          :title="modelDisplayName(adapter)"
           @click="openModelConfig()"
         >
           <span
@@ -65,7 +66,7 @@ function openModelConfig(openEditor = false) {
           </span>
           <span class="flex min-w-0 flex-1 flex-col gap-[3px]">
             <span class="truncate text-[12.5px] text-[var(--text-primary)]">
-              {{ adapter.displayName }}
+              {{ modelDisplayName(adapter) }}
             </span>
             <span class="truncate text-[10.5px] text-[var(--text-faint)]">
               {{ providerTypeLabel(adapter.type) }}

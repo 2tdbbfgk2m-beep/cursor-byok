@@ -14,6 +14,7 @@ const props = defineProps({
   apiKey: { type: String, required: true },
   initialType: { type: String, default: "openai" },
   providerAdapters: { type: Array, default: () => [] },
+  providerName: { type: String, default: "" },
 });
 
 const emit = defineEmits(["close", "added", "manual"]);
@@ -162,6 +163,7 @@ async function handleConfirm() {
       apiKey: props.apiKey.trim(),
       modelID,
       displayName: modelID,
+      providerName: props.providerName.trim(),
     }));
     const result = await addModelAdapters(drafts);
     if (!result.ok) {
@@ -177,6 +179,7 @@ async function handleConfirm() {
 
 function handleManual() {
   emit("manual", {
+    providerName: props.providerName.trim(),
     type: activeType.value,
     baseURL: props.baseURL.trim(),
     apiKey: props.apiKey.trim(),

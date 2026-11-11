@@ -259,6 +259,7 @@ export function createEmptyModelAdapter() {
     id: "",
     sort: 0,
     displayName: "",
+    providerName: "",
     type: "openai",
     baseURL: "",
     apiKey: "",
@@ -367,6 +368,7 @@ export function normalizeModelAdapter(source) {
     id: asString(raw.id),
     sort: asPositiveInteger(raw.sort),
     displayName: asString(raw.displayName || raw.name),
+    providerName: asString(raw.providerName),
     type: SUPPORTED_MODEL_ADAPTER_TYPES.has(normalizedType) ? normalizedType : "",
     baseURL: normalizeBaseURL(raw.baseURL || raw.url),
     apiKey: asString(raw.apiKey || raw.key),
@@ -1422,7 +1424,7 @@ export async function addModelAdapters(adapters) {
 }
 
 // updateProviderCredentials 批量更新同一提供商下全部模型的接口地址与密钥。
-export async function updateProviderCredentials(oldBaseURL, oldAPIKey, { baseURL, apiKey } = {}) {
+export async function updateProviderCredentials(oldBaseURL, oldAPIKey, { baseURL, apiKey, providerName } = {}) {
   const nextBaseURL = asString(baseURL).trim();
   const nextAPIKey = asString(apiKey).trim();
   if (!nextBaseURL) {
@@ -1446,7 +1448,7 @@ export async function updateProviderCredentials(oldBaseURL, oldAPIKey, { baseURL
       return adapter;
     }
     updated += 1;
-    return { ...adapter, baseURL: nextBaseURL, apiKey: nextAPIKey };
+    return { ...adapter, baseURL: nextBaseURL, apiKey: nextAPIKey, providerName: providerName === undefined ? adapter.providerName : asString(providerName) };
   });
   if (updated === 0) {
     return { ok: false, error: "没有匹配的模型配置，请刷新后重试", updated: 0 };

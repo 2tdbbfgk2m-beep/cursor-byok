@@ -157,7 +157,7 @@ onBeforeUnmount(() => {
       <div class="center-row min-w-0 flex-1 gap-2">
         <span class="icon-[mdi--earth] text-[18px] shrink-0 text-[#8f8f8f]"></span>
         <span class="truncate text-[15px] font-medium text-white" :title="group.baseURL">
-          {{ formatHost(group.baseURL) }}
+          {{ group.name }}
         </span>
         <span
           v-for="type in group.types"
@@ -204,7 +204,7 @@ onBeforeUnmount(() => {
           @click="emit('edit-provider', group)"
         >
           <span class="icon-[mdi--key-outline] text-[15px]"></span>
-          <span>编辑凭证</span>
+          <span>编辑提供商</span>
         </button>
         <button
           type="button"

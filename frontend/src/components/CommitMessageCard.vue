@@ -1,4 +1,5 @@
 <script setup>
+import { modelDisplayName } from "@/state/providerGroups";
 import { computed, ref } from "vue";
 import Button from "@/components/ui/Button.vue";
 import Card from "@/components/ui/Card.vue";
@@ -17,10 +18,7 @@ const saving = ref(false);
 const modelOptions = computed(() => [
   { label: "直连（默认）", value: "" },
   ...appState.modelAdapters.map((adapter) => ({
-    label:
-      adapter.displayName && adapter.displayName !== adapter.modelID
-        ? `${adapter.displayName}（${adapter.modelID}）`
-        : adapter.displayName || adapter.modelID,
+    label: modelDisplayName(adapter),
     value: adapter.id,
   })),
 ]);

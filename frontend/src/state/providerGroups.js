@@ -38,6 +38,18 @@ export function buildProviderGroupKeyFromCredentials(baseURL, apiKey) {
   return buildProviderGroupKey({ baseURL, apiKey });
 }
 
+export function providerLabel(adapter) {
+  const name = asText(adapter?.providerName).trim();
+  if (name) return name;
+  try { return new URL(asText(adapter?.baseURL)).hostname; } catch { return ""; }
+}
+
+export function modelDisplayName(adapter) {
+  const name = asText(adapter?.displayName || adapter?.modelID).trim();
+  const provider = providerLabel(adapter);
+  return provider ? `${provider} / ${name}` : name;
+}
+
 // buildProviderGroups 按提供商把模型适配器聚合成分组列表，保持全局首次出现顺序。
 // 返回结构：{ key, baseURL, apiKey, types, adapters }。
 export function buildProviderGroups(adapters) {
@@ -57,8 +69,11 @@ export function buildProviderGroups(adapters) {
       groups.push(group);
     }
     group.adapters.push(adapter);
+    if (!group.providerName && asText(adapter.providerName).trim()) group.providerName = asText(adapter.providerName).trim();
   }
   for (const group of groups) {
+    group.providerName ||= "";
+    group.name = providerLabel(group);
     group.types = Array.from(new Set(group.adapters.map((adapter) => asText(adapter.type))));
   }
   return groups;

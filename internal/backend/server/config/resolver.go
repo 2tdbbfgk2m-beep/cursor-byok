@@ -44,7 +44,7 @@ func resolveModelAdapterChannel(adapters []ModelAdapterConfig, requestedModel st
 
 	resolved := &legacyruntime.ResolvedChannel{
 		ID:                          strings.TrimSpace(matched.ID),
-		Name:                        strings.TrimSpace(matched.DisplayName),
+		Name:                        modelchannel.DisplayName(matched.ProviderName, matched.BaseURL, matched.DisplayName, matched.ModelID),
 		GroupName:                   "local",
 		Code:                        strings.TrimSpace(matched.ID),
 		Provider:                    strings.TrimSpace(matched.Type),

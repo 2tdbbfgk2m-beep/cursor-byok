@@ -1,4 +1,5 @@
 <script setup>
+import { modelDisplayName } from "@/state/providerGroups";
 import ProviderMark from "@/components/brand/ProviderMark.vue";
 import { providerTypeLabel } from "@/utils/providerLabel";
 import { computed } from "vue";
@@ -59,9 +60,9 @@ const rows = computed(() => props.adapters);
               <ProviderMark :brand="adapter.type" :size="13" />
               <span
                 class="truncate text-[11.5px] font-medium tracking-[-0.01em] text-[var(--text-primary)]"
-                :title="adapter.displayName"
+                :title="modelDisplayName(adapter)"
               >
-                {{ adapter.displayName }}
+                {{ modelDisplayName(adapter) }}
               </span>
             </div>
             <span

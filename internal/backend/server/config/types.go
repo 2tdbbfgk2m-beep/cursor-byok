@@ -22,6 +22,7 @@ const (
 
 type ModelAdapterConfig struct {
 	ID                          string `json:"id,omitempty" yaml:"-"`
+	ProviderName                string `json:"providerName" yaml:"providerName,omitempty"`
 	Sort                        int    `json:"sort" yaml:"sort"`
 	DisplayName                 string `json:"displayName" yaml:"displayName"`
 	Type                        string `json:"type" yaml:"type"`
@@ -110,6 +111,7 @@ func NormalizeModelAdapterConfigs(input []ModelAdapterConfig) ([]ModelAdapterCon
 		}
 		nextType := normalizeModelAdapterType(item.Type)
 		next := ModelAdapterConfig{
+			ProviderName:         strings.TrimSpace(item.ProviderName),
 			Sort:                 item.Sort,
 			DisplayName:          strings.TrimSpace(item.DisplayName),
 			Type:                 nextType,
@@ -172,6 +174,18 @@ func NormalizeModelAdapterConfigs(input []ModelAdapterConfig) ([]ModelAdapterCon
 		normalized = append(normalized, next)
 	}
 	normalizeModelAdapterSorts(normalized)
+	// All models in a credential group share its first configured name, including new models.
+	names := make(map[string]string)
+	for _, adapter := range normalized {
+		key := adapter.BaseURL + "\n" + adapter.APIKey
+		if names[key] == "" && adapter.ProviderName != "" {
+			names[key] = adapter.ProviderName
+		}
+	}
+	for index := range normalized {
+		adapter := &normalized[index]
+		adapter.ProviderName = names[adapter.BaseURL+"\n"+adapter.APIKey]
+	}
 	return normalized, nil
 }
 

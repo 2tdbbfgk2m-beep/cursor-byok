@@ -36,7 +36,8 @@ const (
 
 // ModelAdapterConfig 定义了当前模块中的 ModelAdapterConfig 类型。
 type ModelAdapterConfig struct {
-	ID string `json:"id,omitempty"`
+	ID           string `json:"id,omitempty"`
+	ProviderName string `json:"providerName"`
 	// Sort 表示模型渠道的展示顺序。
 	Sort int `json:"sort"`
 	// DisplayName 表示当前声明中的 DisplayName。
@@ -106,6 +107,7 @@ func NormalizeModelAdapterConfigs(input []ModelAdapterConfig) ([]ModelAdapterCon
 			return nil, err
 		}
 		next := ModelAdapterConfig{
+			ProviderName:         strings.TrimSpace(item.ProviderName),
 			Sort:                 item.Sort,
 			DisplayName:          strings.TrimSpace(item.DisplayName),
 			Type:                 normalizeModelAdapterType(item.Type),
@@ -414,7 +416,7 @@ func (s *FixedChannelService) SelectChannelForModel(ctx context.Context, modelID
 		adapter := adapters[matchIndex]
 		resolved := ResolvedChannel{
 			ID:                          strings.TrimSpace(adapter.ID),
-			Name:                        strings.TrimSpace(adapter.DisplayName),
+			Name:                        modelchannel.DisplayName(adapter.ProviderName, adapter.BaseURL, adapter.DisplayName, adapter.ModelID),
 			GroupName:                   "local",
 			Code:                        strings.TrimSpace(adapter.ID),
 			Provider:                    strings.TrimSpace(adapter.Type),
