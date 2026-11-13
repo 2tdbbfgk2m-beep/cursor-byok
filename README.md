@@ -4,7 +4,7 @@
 
 A local model gateway for Cursor — **Go implementation fork** with continued secondary development.
 
-[Download](https://github.com/Sxuan-Coder/cursor-byok/releases/latest) · [Releases](https://github.com/Sxuan-Coder/cursor-byok/releases) · [Issues](https://github.com/Sxuan-Coder/cursor-byok/issues)
+[Download](https://github.com/Sxuan-Coder/cursor-byok/releases/latest) · [Releases](https://github.com/Sxuan-Coder/cursor-byok/releases) · [Issues](https://github.com/Sxuan-Coder/cursor-byok/issues) · [中文](./README-CN.md)
 
 [![Release](https://img.shields.io/github/v/release/Sxuan-Coder/cursor-byok?style=flat-square)](https://github.com/Sxuan-Coder/cursor-byok/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/Sxuan-Coder/cursor-byok/total?style=flat-square)](https://github.com/Sxuan-Coder/cursor-byok/releases)
